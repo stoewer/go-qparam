@@ -8,11 +8,11 @@ package qparam
 
 import (
 	"errors"
-	"fmt"
-	"github.com/stoewer/go-qparam/internal"
 	"net/url"
 	"reflect"
 	"strings"
+
+	"github.com/stoewer/go-qparam/internal"
 )
 
 var (
