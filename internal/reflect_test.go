@@ -70,9 +70,9 @@ func TestParseInto(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			internal.ParseInto(tt.str, tt.target)
+			targetVal := reflect.ValueOf(tt.target)
+			internal.ParseInto(tt.str, targetVal)
 			val := reflect.ValueOf(tt.target).Elem().Interface()
-
 			assert.Equal(t, tt.exp, val)
 		})
 	}
