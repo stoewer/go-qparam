@@ -1,18 +1,18 @@
 // Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
 // All rights reserved.
 
-// The package qparam provides convenient functions to read query parameters from request
+// Package qparam provides convenient functions to read query parameters from request
 // URLs. On errors the package functions create errors which provide detailed information about
 // missing parameters and other failure causes.
 package qparam
 
 import (
 	"errors"
-	"fmt"
-	"github.com/stoewer/go-qparam/internal"
 	"net/url"
 	"reflect"
 	"strings"
+
+	"github.com/stoewer/go-qparam/internal"
 )
 
 var (
@@ -88,10 +88,7 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 			if !ok {
 				continue
 			}
-			fmt.Println(paramName, paramVal)
-
 			structField := val.Field(i)
-			//structField.SetString(paramVal[0])
 			internal.ParseInto(paramVal[0], structField)
 		}
 	}

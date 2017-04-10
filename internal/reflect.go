@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+// ErrUnsupportedType is the error used if the target type is not supported
 var ErrUnsupportedType = errors.New("Target type must be of kind string, int, uint, float or bool")
 
 // ParseInto parses a string into the target value.

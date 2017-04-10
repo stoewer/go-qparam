@@ -16,9 +16,9 @@ var now time.Time
 var nowStr string
 
 func init() {
-	now = time.Now()
-	b, _ := now.MarshalText()
+	b, _ := time.Now().MarshalText()
 	nowStr = string(b)
+	now.UnmarshalText(b)
 }
 
 func TestParseInto(t *testing.T) {
