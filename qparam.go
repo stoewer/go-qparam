@@ -7,13 +7,19 @@
 package qparam
 
 import (
+	"errors"
+	"fmt"
+	"github.com/stoewer/go-qparam/internal"
 	"net/url"
+	"reflect"
 	"strings"
 )
 
 var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
+
+	errNoPtr = errors.New("Target must be a pointer")
 )
 
 // ErrorMapper is an error which also contains a map of additional (named) errors
@@ -63,5 +69,32 @@ func New(options ...Option) *Reader {
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
+
+	for _, target := range targets {
+		typ := reflect.TypeOf(target)
+		if typ.Kind() != reflect.Ptr {
+			return errNoPtr
+		}
+
+		typ = typ.Elem()
+		val := reflect.ValueOf(target).Elem()
+		for i := 0; i < typ.NumField(); i++ {
+			field := typ.Field(i)
+			paramName, ok := field.Tag.Lookup(r.tag)
+			if !ok {
+				paramName = r.mapper(field.Name)
+			}
+			paramVal, ok := params[paramName]
+			if !ok {
+				continue
+			}
+			fmt.Println(paramName, paramVal)
+
+			structField := val.Field(i)
+			//structField.SetString(paramVal[0])
+			internal.ParseInto(paramVal[0], structField)
+		}
+	}
+
 	return nil
 }
