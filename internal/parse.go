@@ -17,7 +17,10 @@ var ErrUnsupportedType = errors.New("Target type must be of kind string, int, ui
 // The function panics on errors.
 func ParseInto(str string, target reflect.Value) {
 	if unmarshal := target.MethodByName("UnmarshalText"); unmarshal.IsValid() {
-		unmarshal.Call([]reflect.Value{reflect.ValueOf([]byte(str))})
+		returned := unmarshal.Call([]reflect.Value{reflect.ValueOf([]byte(str))})
+		if len(returned) > 0 && !returned[0].IsNil() {
+			panic(errors.New("Error while calling UnmarshalText"))
+		}
 	} else {
 		if target.Kind() == reflect.Ptr {
 			target = target.Elem()

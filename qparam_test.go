@@ -27,7 +27,7 @@ func TestReader_Read(t *testing.T) {
 	for _, tt := range tests {
 		r := qparam.New()
 		target := strings{}
-		err := r.Read(tt.Values, &target)
+		err := r.ReadParams(tt.Values, &target)
 		assert.NoError(t, err)
 		assert.Equal(t, target, tt.Expected)
 	}
