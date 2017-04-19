@@ -8,7 +8,6 @@ package qparam
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -21,7 +20,6 @@ var (
 	defaultMapper = strings.ToLower
 	errNoPtr      = errors.New("Target must be a pointer")
 	errNoStruct   = errors.New("Target must be a struct")
-	errMultiple   = errors.New("Parameter has multiple values but target is not a slice")
 )
 
 // ErrorMapper is an error which also contains a map of additional (named) errors
@@ -72,44 +70,71 @@ func New(options ...Option) *ParameterReader {
 // target structs.
 func (r *ParameterReader) ReadParams(params url.Values, targets ...interface{}) error {
 	for _, target := range targets {
-		targetType := reflect.TypeOf(target)
-		if targetType.Kind() != reflect.Ptr {
-			return errNoPtr
-		}
-
-		targetType = targetType.Elem()
-		if targetType.Kind() != reflect.Struct {
-			return errNoStruct
-		}
-
-		targetVal := reflect.ValueOf(target).Elem()
-		for i := 0; i < targetType.NumField(); i++ {
-			field := targetType.Field(i)
-
-			paramName, ok := field.Tag.Lookup(r.tag)
-			if !ok {
-				paramName = r.mapper(field.Name)
-			}
-
-			paramVal, ok := params[paramName]
-			if !ok {
-				continue
-			}
-			if len(paramVal) == 0 {
-				continue
-			}
-
-			fieldVal := targetVal.Field(i)
-			switch fieldVal.Kind() {
-			case reflect.Slice:
-				return fmt.Errorf("Field type Slice is not supported yet")
-			default:
-				if len(paramVal) > 1 {
-					return errMultiple
-				}
-				internal.ParseInto(paramVal[0], fieldVal)
-			}
+		err := r.readParams(params, target)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (r *ParameterReader) readParams(params url.Values, target interface{}) error {
+	targetVal := reflect.ValueOf(target)
+	if targetVal.Kind() != reflect.Ptr {
+		return errNoPtr
+	}
+
+	targetVal = targetVal.Elem()
+	if targetVal.Kind() != reflect.Struct {
+		return errNoStruct
+	}
+
+	targetType := reflect.TypeOf(target).Elem()
+	for i := 0; i < targetType.NumField(); i++ {
+		field := targetType.Field(i)
+
+		paramName := r.paramName(field)
+		paramVal, ok := params[paramName]
+		if !ok || len(paramVal) == 0 {
+			continue
+		}
+
+		fieldVal := targetVal.Field(i)
+		r.parseSingle(paramVal[0], fieldVal)
+	}
+
+	return nil
+}
+
+func (r *ParameterReader) paramName(field reflect.StructField) string {
+	name, ok := field.Tag.Lookup(r.tag)
+	if !ok {
+		name = r.mapper(field.Name)
+	}
+	return name
+}
+
+func (r *ParameterReader) parseSingle(str string, target reflect.Value) error {
+	for _, parser := range internal.RegisteredCheckedParsers {
+		if parser.Check(target) {
+			err := parser.Parse(target, str)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	parser, ok := internal.RegisteredParsers[target.Kind()]
+	if !ok {
+		return errors.New("Not supported")
+	}
+
+	value, err := parser.Parse(str)
+	if err != nil {
+		return err
+	}
+
+	target.Set(value)
 	return nil
 }
