@@ -8,6 +8,7 @@ package qparam
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -19,14 +20,18 @@ var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
 
-	errNoPtr = errors.New("Target must be a pointer")
+	errNoPtr        = errors.New("target must be a pointer")
+	errNoStruct     = errors.New("target must be a struct")
+	errNotSupported = errors.New("field has unsupported type")
 )
 
-// ErrorMapper is an error which also contains a map of additional (named) errors
+// MultiError is an error which also contains a map of additional (named) errors
 // which altogether caused the actual failure.
-type ErrorMapper interface {
-	error
-	ErrorMap() map[string]error
+type MultiError map[string]error
+
+// Error implements error for MultiError
+func (e MultiError) Error() string {
+	return fmt.Sprintf("%d errors occured while parsing fields", len(e))
 }
 
 // Option is a functional option which can be applied to a reader.
@@ -69,27 +74,52 @@ func New(options ...Option) *Reader {
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
-
 	for _, target := range targets {
-		typ := reflect.TypeOf(target)
-		if typ.Kind() != reflect.Ptr {
-			return errNoPtr
+		err := r.read(params, target)
+		if err != nil {
+			return err
 		}
+	}
+	return nil
+}
 
-		typ = typ.Elem()
-		val := reflect.ValueOf(target).Elem()
-		for i := 0; i < typ.NumField(); i++ {
-			field := typ.Field(i)
-			paramName, ok := field.Tag.Lookup(r.tag)
-			if !ok {
-				paramName = r.mapper(field.Name)
-			}
-			paramVal, ok := params[paramName]
-			if !ok {
+func (r *Reader) read(params url.Values, target interface{}) error {
+	targetVal := reflect.ValueOf(target)
+	if targetVal.Kind() != reflect.Ptr {
+		return errNoPtr
+	}
+
+	targetVal = targetVal.Elem()
+	if targetVal.Kind() != reflect.Struct {
+		return errNoStruct
+	}
+
+	it := internal.NewIterator(targetVal, r.tag, r.mapper)
+	for it.HasNext() {
+		name, field := it.Next()
+		if values, ok := params[name]; ok && len(values) > 0 {
+			checked, ok := internal.SelectCheckedParser(field)
+			if ok {
+				if field.Kind() == reflect.Struct {
+					it.SkipStruct()
+				}
+				err := checked.Parse(field, values[0])
+				if err != nil {
+					return err
+				}
 				continue
 			}
-			structField := val.Field(i)
-			internal.ParseInto(paramVal[0], structField)
+
+			parser, ok := internal.SelectParser(field)
+			if !ok {
+				return errNotSupported
+			}
+
+			parsed, err := parser.Parse(values[0])
+			if err != nil {
+				return err
+			}
+			field.Set(parsed)
 		}
 	}
 
