@@ -8,6 +8,7 @@ package qparam
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -18,46 +19,50 @@ import (
 var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
-	errNoPtr      = errors.New("Target must be a pointer")
-	errNoStruct   = errors.New("Target must be a struct")
+
+	errNoPtr        = errors.New("target must be a pointer")
+	errNoStruct     = errors.New("target must be a struct")
+	errNotSupported = errors.New("field has unsupported type")
 )
 
-// ErrorMapper is an error which also contains a map of additional (named) errors
+// MultiError is an error which also contains a map of additional (named) errors
 // which altogether caused the actual failure.
-type ErrorMapper interface {
-	error
-	ErrorMap() map[string]error
+type MultiError map[string]error
+
+// Error implements error for MultiError
+func (e MultiError) Error() string {
+	return fmt.Sprintf("%d errors occured while parsing fields", len(e))
 }
 
 // Option is a functional option which can be applied to a reader.
-type Option func(*ParameterReader)
+type Option func(*Reader)
 
-// Mapper is a functional option which allows to specify a custom name mapper to
+// mapper is a functional option which allows to specify a custom name mapper to
 // the reader.
 func Mapper(mapper func(string) string) Option {
-	return func(r *ParameterReader) {
+	return func(r *Reader) {
 		r.mapper = mapper
 	}
 }
 
-// Tag is a functional option which allows to specify a custom struct tag for the
+// tag is a functional option which allows to specify a custom struct tag for the
 // reader.
 func Tag(tag string) Option {
-	return func(r *ParameterReader) {
+	return func(r *Reader) {
 		r.tag = tag
 	}
 }
 
-// ParameterReader defines methods which can read query parameters and assign them to matching
+// Reader defines methods which can read query parameters and assign them to matching
 // fields of target structs.
-type ParameterReader struct {
+type Reader struct {
 	tag    string
 	mapper func(string) string
 }
 
 // New creates a new reader which can be configured with predefined functional options.
-func New(options ...Option) *ParameterReader {
-	r := &ParameterReader{tag: defaultTag, mapper: defaultMapper}
+func New(options ...Option) *Reader {
+	r := &Reader{tag: defaultTag, mapper: defaultMapper}
 
 	for _, opt := range options {
 		opt(r)
@@ -66,11 +71,11 @@ func New(options ...Option) *ParameterReader {
 	return r
 }
 
-// ReadParams takes the provided query parameter and assigns them to the matching fields of the
+// Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
-func (r *ParameterReader) ReadParams(params url.Values, targets ...interface{}) error {
+func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 	for _, target := range targets {
-		err := r.readParams(params, target)
+		err := r.read(params, target)
 		if err != nil {
 			return err
 		}
@@ -78,7 +83,7 @@ func (r *ParameterReader) ReadParams(params url.Values, targets ...interface{}) 
 	return nil
 }
 
-func (r *ParameterReader) readParams(params url.Values, target interface{}) error {
+func (r *Reader) read(params url.Values, target interface{}) error {
 	targetVal := reflect.ValueOf(target)
 	if targetVal.Kind() != reflect.Ptr {
 		return errNoPtr
@@ -89,52 +94,35 @@ func (r *ParameterReader) readParams(params url.Values, target interface{}) erro
 		return errNoStruct
 	}
 
-	targetType := reflect.TypeOf(target).Elem()
-	for i := 0; i < targetType.NumField(); i++ {
-		field := targetType.Field(i)
+	it := internal.NewIterator(targetVal, r.tag, r.mapper)
+	for it.HasNext() {
+		name, field := it.Next()
+		fmt.Println(fmt.Sprintf(`"%s": []string{""},`, name))
+		if values, ok := params[name]; ok && len(values) > 0 {
+			checked, ok := internal.SelectCheckedParser(field)
+			if ok {
+				if field.Kind() == reflect.Struct {
+					it.SkipStruct()
+				}
+				err := checked.Parse(field, values[0])
+				if err != nil {
+					return err
+				}
+				continue
+			}
 
-		paramName := r.paramName(field)
-		paramVal, ok := params[paramName]
-		if !ok || len(paramVal) == 0 {
-			continue
-		}
+			parser, ok := internal.SelectParser(field)
+			if !ok {
+				return errNotSupported
+			}
 
-		fieldVal := targetVal.Field(i)
-		r.parseSingle(paramVal[0], fieldVal)
-	}
-
-	return nil
-}
-
-func (r *ParameterReader) paramName(field reflect.StructField) string {
-	name, ok := field.Tag.Lookup(r.tag)
-	if !ok {
-		name = r.mapper(field.Name)
-	}
-	return name
-}
-
-func (r *ParameterReader) parseSingle(str string, target reflect.Value) error {
-	for _, parser := range internal.RegisteredCheckedParsers {
-		if parser.Check(target) {
-			err := parser.Parse(target, str)
+			parsed, err := parser.Parse(values[0])
 			if err != nil {
 				return err
 			}
-			return nil
+			field.Set(parsed)
 		}
 	}
 
-	parser, ok := internal.RegisteredParsers[target.Kind()]
-	if !ok {
-		return errors.New("Not supported")
-	}
-
-	value, err := parser.Parse(str)
-	if err != nil {
-		return err
-	}
-
-	target.Set(value)
 	return nil
 }

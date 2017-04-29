@@ -5,6 +5,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -13,30 +14,53 @@ type CheckedParser interface {
 	Parse(reflect.Value, string) error
 }
 
-var RegisteredCheckedParsers = []CheckedParser{
-	&TextParser{},
+var registeredCheckedParsers = []CheckedParser{
+	textParser{},
 }
 
-type TextParser struct{}
+func SelectCheckedParser(value reflect.Value) (CheckedParser, bool) {
+	for _, parser := range registeredCheckedParsers {
+		if parser.Check(value) {
+			return parser, true
+		}
+	}
+	return nil, false
+}
 
-func (p *TextParser) Check(val reflect.Value) bool {
-	unmarshal := val.MethodByName("UnmarshalText")
+type textParser struct{}
+
+func (p textParser) Check(value reflect.Value) bool {
+	unmarshal := p.method(value)
 	if !unmarshal.IsValid() {
 		return false
 	}
 	return true
 }
 
-func (p *TextParser) Parse(val reflect.Value, s string) error {
-	unmarshal := val.MethodByName("UnmarshalText")
+func (p textParser) Parse(value reflect.Value, s string) error {
+	unmarshal := p.method(value)
 	if !unmarshal.IsValid() {
-		return errors.New("Method UnmarshalText not available")
+		return errors.New("method UnmarshalText not available")
 	}
 
 	returned := unmarshal.Call([]reflect.Value{reflect.ValueOf([]byte(s))})
 	if len(returned) > 0 && !returned[0].IsNil() {
-		return errors.New("Error while calling UnmarshalText")
+		return fmt.Errorf("%s", returned[0])
 	}
 
 	return nil
+}
+
+func (p textParser) method(value reflect.Value) reflect.Value {
+	m := value.MethodByName("UnmarshalText")
+	if !m.IsValid() {
+		if value.Kind() == reflect.Ptr {
+			m = value.Elem().MethodByName("UnmarshalText")
+		} else {
+			if value.CanAddr() {
+				m = value.Addr().MethodByName("UnmarshalText")
+			}
+		}
+	}
+	return m
 }

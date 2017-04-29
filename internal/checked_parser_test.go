@@ -1,19 +1,22 @@
+// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// All rights reserved.
+
 package internal
 
 import (
-	"database/sql"
-	"errors"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/guregu/null"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	now    time.Time
-	nowStr string
+	now      time.Time
+	nowStr   string
+	nullTrue = null.BoolFrom(true)
 )
 
 func init() {
@@ -22,39 +25,27 @@ func init() {
 	now.UnmarshalText(b)
 }
 
-func TestTextParser_Check(t *testing.T) {
-	data := []struct {
-		Value    reflect.Value
-		Expected bool
-	}{
-		{Value: reflect.ValueOf(&now), Expected: true},
-		{Value: reflect.ValueOf(&null.String{}), Expected: true},
-		{Value: reflect.ValueOf(&null.Bool{}), Expected: true},
-		{Value: reflect.ValueOf(&sql.NullString{}), Expected: false},
-	}
-
-	textParser := &TextParser{}
-	for _, tt := range data {
-		assert.Equal(t, tt.Expected, textParser.Check(tt.Value))
-	}
-}
-
-func TestTextParser_Parse(t *testing.T) {
+func TestSelectCheckedParser(t *testing.T) {
 	data := []struct {
 		Value       string
 		Target      interface{}
 		Expected    interface{}
-		ExpectedErr error
+		ExpectedErr bool
 	}{
 		{Value: nowStr, Target: &time.Time{}, Expected: &now},
-		{Value: "not a time", Target: &time.Time{}, ExpectedErr: errors.New("Error while calling UnmarshalText")},
+		{Value: "not a time", Target: &time.Time{}, ExpectedErr: true},
+
+		{Value: "true", Target: &null.Bool{}, Expected: &nullTrue},
+		{Value: "not a bool", Target: &null.Bool{}, ExpectedErr: true},
 	}
 
-	textParser := &TextParser{}
 	for _, tt := range data {
-		err := textParser.Parse(reflect.ValueOf(tt.Target), tt.Value)
-		if tt.ExpectedErr != nil {
-			assert.EqualError(t, err, tt.ExpectedErr.Error())
+		parser, ok := SelectCheckedParser(reflect.ValueOf(tt.Target))
+		require.True(t, ok, "no parser found")
+
+		err := parser.Parse(reflect.ValueOf(tt.Target), tt.Value)
+		if tt.ExpectedErr {
+			assert.Error(t, err)
 		} else {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.Expected, tt.Target)
