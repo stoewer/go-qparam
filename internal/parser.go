@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+// Parser is used to parse a string into its value representation. The type of the returned value
+// depends on the implementation of the parser. A bool parser will turn the string "1" into 'true' but
+// a int64 parser would turn the same string into 'int64(1)'.
 type Parser interface {
 	Parse(string) (reflect.Value, error)
 }
@@ -29,6 +32,8 @@ var registeredParsers = map[reflect.Kind]Parser{
 	reflect.String:  stringParser,
 }
 
+// SelectParser finds a Parser that matches the kind of the provided value. If such a parser
+// was found the second returned value will be true, it is false otherwise.
 func SelectParser(value reflect.Value) (Parser, bool) {
 	parser, ok := registeredParsers[value.Kind()]
 	return parser, ok

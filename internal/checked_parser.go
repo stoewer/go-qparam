@@ -9,6 +9,8 @@ import (
 	"reflect"
 )
 
+// CheckedParser is a parser that has a method (Check) which can be used to determine whether the
+// parser can be applied to a certain value. It is recommended to call Check prior to calling Parse.
 type CheckedParser interface {
 	Check(reflect.Value) bool
 	Parse(reflect.Value, string) error
@@ -18,6 +20,8 @@ var registeredCheckedParsers = []CheckedParser{
 	textParser{},
 }
 
+// SelectCheckedParser finds a registered CheckedParser which passes its check for the provided value.
+// If such a parser was found the second return value will be true, it is false otherwise.
 func SelectCheckedParser(value reflect.Value) (CheckedParser, bool) {
 	for _, parser := range registeredCheckedParsers {
 		if parser.Check(value) {

@@ -14,14 +14,16 @@ type parent struct {
 	name    string
 }
 
-type state int
+type state byte
 
 const (
-	FORWARD_REQUIRED state = iota
-	OK
-	DONE
+	forwardRequired state = iota
+	ok
+	done
 )
 
+// NewIterator returns a new Iterator. The returned iterator can be used exactly one time to iterate over
+// fields of the target struct.
 func NewIterator(target reflect.Value, tag string, mapper func(string) string) *Iterator {
 	if target.Kind() == reflect.Ptr {
 		target = target.Elem()
@@ -34,6 +36,7 @@ func NewIterator(target reflect.Value, tag string, mapper func(string) string) *
 	}
 }
 
+// Iterator is used to iterate over struct fields and the fields of its child structs.
 type Iterator struct {
 	tag        string
 	mapper     func(string) string
@@ -45,25 +48,31 @@ type Iterator struct {
 	fieldPath  string
 }
 
+// HasNext indicates whether or not the iterator can return an additional field. HasNext should always be
+// called prior to calling the Next method.
 func (it *Iterator) HasNext() bool {
-	if it.state == FORWARD_REQUIRED {
+	if it.state == forwardRequired {
 		it.state = it.forward()
 	}
-	return it.state != DONE
+	return it.state != done
 }
 
+// Next returns the next field (along with its path/name). The method HasNext should be used in order to
+// check whether it is safe to call Next or not.
 func (it *Iterator) Next() (string, reflect.Value) {
-	if it.state == FORWARD_REQUIRED {
+	if it.state == forwardRequired {
 		it.state = it.forward()
 	}
-	if it.state == OK {
-		it.state = FORWARD_REQUIRED
+	if it.state == ok {
+		it.state = forwardRequired
 	}
 	return it.fieldPath, it.fieldValue
 }
 
+// SkipStruct skips all remaining fields of the current struct. This will end the iteration or will continue with
+// the next field of the parent struct.
 func (it *Iterator) SkipStruct() {
-	it.state = FORWARD_REQUIRED
+	it.state = forwardRequired
 	it.index = it.current.NumField()
 }
 
@@ -79,7 +88,7 @@ func (it *Iterator) forward() state {
 				continue
 			}
 
-			return DONE
+			return done
 		}
 
 		// skip if not settable
@@ -125,11 +134,11 @@ func (it *Iterator) forward() state {
 			it.parents = append(it.parents, parent{current: it.current, index: it.index, name: fieldName})
 			it.current = it.fieldValue
 			it.index = 0
-			return OK
+			return ok
 		}
 
 		// forwarding complete
 		it.index++
-		return OK
+		return ok
 	}
 }

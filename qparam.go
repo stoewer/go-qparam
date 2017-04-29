@@ -37,7 +37,7 @@ func (e MultiError) Error() string {
 // Option is a functional option which can be applied to a reader.
 type Option func(*Reader)
 
-// mapper is a functional option which allows to specify a custom name mapper to
+// Mapper is a functional option which allows to specify a custom name mapper to
 // the reader.
 func Mapper(mapper func(string) string) Option {
 	return func(r *Reader) {
@@ -45,7 +45,7 @@ func Mapper(mapper func(string) string) Option {
 	}
 }
 
-// tag is a functional option which allows to specify a custom struct tag for the
+// Tag is a functional option which allows to specify a custom struct tag for the
 // reader.
 func Tag(tag string) Option {
 	return func(r *Reader) {
@@ -97,7 +97,6 @@ func (r *Reader) read(params url.Values, target interface{}) error {
 	it := internal.NewIterator(targetVal, r.tag, r.mapper)
 	for it.HasNext() {
 		name, field := it.Next()
-		fmt.Println(fmt.Sprintf(`"%s": []string{""},`, name))
 		if values, ok := params[name]; ok && len(values) > 0 {
 			checked, ok := internal.SelectCheckedParser(field)
 			if ok {

@@ -8,6 +8,7 @@ install:
  - go get -v -u github.com/golang/lint/golint
  - go get -v -u github.com/mattn/goveralls
  - go get -v -u github.com/stretchr/testify/...
+ - go get -v -u github.com/guregu/null
 
 script:
  - golint -set_exit_status ./...
