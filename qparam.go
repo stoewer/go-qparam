@@ -22,16 +22,27 @@ var (
 
 	errNoPtr        = errors.New("target must be a pointer")
 	errNoStruct     = errors.New("target must be a struct")
-	errNotSupported = errors.New("field has unsupported type")
+	errNotSupported = errors.New("has an unsupported type")
 )
 
 // MultiError is an error which also contains a map of additional (named) errors
 // which altogether caused the actual failure.
-type MultiError map[string]error
+type MultiError interface {
+	error
+	ErrorMap() map[string]error
+}
 
-// Error implements error for MultiError
-func (e MultiError) Error() string {
-	return fmt.Sprintf("%d errors occured while parsing fields", len(e))
+// implementation of MultiError
+type multiError map[string]error
+
+// Error returns a string summarizing all errors
+func (err multiError) Error() string {
+	return fmt.Sprintf("%d errors occured while reading fields", len(err))
+}
+
+// ErrorMap returns all field names with their respective errors
+func (err multiError) ErrorMap() map[string]error {
+	return err
 }
 
 // Option is a functional option which can be applied to a reader.
@@ -74,53 +85,52 @@ func New(options ...Option) *Reader {
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
+	errorMap := multiError{}
 	for _, target := range targets {
-		err := r.read(params, target)
-		if err != nil {
-			return err
+		targetVal := reflect.ValueOf(target)
+		if targetVal.Kind() != reflect.Ptr {
+			return errNoPtr
 		}
-	}
-	return nil
-}
 
-func (r *Reader) read(params url.Values, target interface{}) error {
-	targetVal := reflect.ValueOf(target)
-	if targetVal.Kind() != reflect.Ptr {
-		return errNoPtr
-	}
+		targetVal = targetVal.Elem()
+		if targetVal.Kind() != reflect.Struct {
+			return errNoStruct
+		}
 
-	targetVal = targetVal.Elem()
-	if targetVal.Kind() != reflect.Struct {
-		return errNoStruct
-	}
-
-	it := internal.NewIterator(targetVal, r.tag, r.mapper)
-	for it.HasNext() {
-		name, field := it.Next()
-		if values, ok := params[name]; ok && len(values) > 0 {
-			checked, ok := internal.SelectCheckedParser(field)
-			if ok {
-				if field.Kind() == reflect.Struct {
-					it.SkipStruct()
+		it := internal.NewIterator(targetVal, r.tag, r.mapper)
+		for it.HasNext() {
+			name, field := it.Next()
+			if values, ok := params[name]; ok && len(values) > 0 {
+				checked, ok := internal.SelectCheckedParser(field)
+				if ok {
+					if field.Kind() == reflect.Struct {
+						it.SkipStruct()
+					}
+					err := checked.Parse(field, values[0])
+					if err != nil {
+						errorMap[name] = err
+					}
+					continue
 				}
-				err := checked.Parse(field, values[0])
+
+				parser, ok := internal.SelectParser(field)
+				if !ok {
+					errorMap[name] = errNotSupported
+					continue
+				}
+
+				parsed, err := parser.Parse(values[0])
 				if err != nil {
-					return err
+					errorMap[name] = err
+					continue
 				}
-				continue
+				field.Set(parsed)
 			}
-
-			parser, ok := internal.SelectParser(field)
-			if !ok {
-				return errNotSupported
-			}
-
-			parsed, err := parser.Parse(values[0])
-			if err != nil {
-				return err
-			}
-			field.Set(parsed)
 		}
+	}
+
+	if len(errorMap) > 0 {
+		return errorMap
 	}
 
 	return nil
