@@ -101,30 +101,17 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 		for it.HasNext() {
 			name, field := it.Next()
 			if values, ok := params[name]; ok && len(values) > 0 {
-				checked, ok := internal.SelectCheckedParser(field)
-				if ok {
-					if field.Kind() == reflect.Struct {
-						it.SkipStruct()
-					}
-					err := checked.Parse(field, values[0])
-					if err != nil {
-						errorMap[name] = err
-					}
-					continue
+				var err error
+
+				if field.Kind() == reflect.Slice {
+					err = r.readSlice(values, field)
+				} else {
+					err = r.readSingle(values, field, it)
 				}
 
-				parser, ok := internal.SelectParser(field)
-				if !ok {
-					errorMap[name] = errNotSupported
-					continue
-				}
-
-				parsed, err := parser.Parse(values[0])
 				if err != nil {
 					errorMap[name] = err
-					continue
 				}
-				field.Set(parsed)
 			}
 		}
 	}
@@ -133,5 +120,70 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 		return errorMap
 	}
 
+	return nil
+}
+
+func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.Iterator) error {
+	checked, ok := internal.SelectCheckedParser(field)
+	if ok {
+		if field.Kind() == reflect.Struct {
+			it.SkipStruct()
+		}
+		return checked.Parse(field, values[0])
+	}
+
+	parser, ok := internal.SelectParser(field)
+	if !ok {
+		return errNotSupported
+	}
+
+	parsed, err := parser.Parse(values[0])
+	if err != nil {
+		return err
+	}
+
+	field.Set(parsed)
+	return nil
+}
+
+func (r *Reader) readSlice(values []string, slice reflect.Value) error {
+	slice.Set(reflect.MakeSlice(slice.Type(), len(values), len(values)))
+
+	first := slice.Index(0)
+	isPtr := first.Kind() == reflect.Ptr
+	if isPtr {
+		for i := 0; i < slice.Len(); i++ {
+			slice.Index(i).Set(reflect.New(slice.Index(i).Type().Elem()))
+		}
+		first = first.Elem()
+	}
+
+	checked, ok := internal.SelectCheckedParser(first)
+	if ok {
+		for i, value := range values {
+			err := checked.Parse(slice.Index(i), value)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	parser, ok := internal.SelectParser(first)
+	if !ok {
+		return errNotSupported
+	}
+
+	for i, value := range values {
+		parsed, err := parser.Parse(value)
+		if err != nil {
+			return err
+		}
+		if isPtr {
+			slice.Index(i).Elem().Set(parsed)
+		} else {
+			slice.Index(i).Set(parsed)
+		}
+	}
 	return nil
 }
