@@ -114,7 +114,7 @@ func TestReader_Read(t *testing.T) {
 		slicesTarget := slices{}
 		pointersTarget := pointers{}
 		values := url.Values{
-			"time": []string{"not a time"}, "time_ptr": []string{nowStr},
+			"time": []string{"not a time"}, "time_ptr": []string{nowStr, tomorrowStr},
 			"int_slice": []string{"not an int", "2", "3"}, "time_slice": []string{"not a time"},
 			"int32ptr": []string{"not and int"}, "uint32ptr": []string{"-399"},
 		}
@@ -122,10 +122,10 @@ func TestReader_Read(t *testing.T) {
 		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
-		assert.EqualError(t, err, "5 errors occured while reading fields")
+		assert.EqualError(t, err, "6 errors occured while reading fields")
 		multi, ok := err.(qparam.MultiError)
 		require.True(t, ok, "not a MultiError")
-		assert.Equal(t, 5, len(multi.ErrorMap()))
+		assert.Equal(t, 6, len(multi.ErrorMap()))
 	})
 
 	t.Run("struct with slices", func(t *testing.T) {

@@ -80,6 +80,10 @@ func New(options ...Option) *Reader {
 
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
+//
+// If an error occurs while parsing values for struct fields, the returned error probably
+// implements the interface MultiError. In that case specific errors for each failed field
+// can be obtained from the error.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 	errorMap := multiError{}
 	for _, target := range targets {
@@ -120,6 +124,10 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 }
 
 func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.Iterator) error {
+	if len(values) > 1 {
+		return errors.New("multiple values present for non slice target")
+	}
+
 	checked, ok := internal.SelectCheckedParser(field)
 	if ok {
 		if field.Kind() == reflect.Struct {
