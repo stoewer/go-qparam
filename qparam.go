@@ -7,22 +7,18 @@
 package qparam
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/stoewer/go-qparam/internal"
 )
 
 var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
-
-	errNoPtr        = errors.New("target must be a pointer")
-	errNoStruct     = errors.New("target must be a struct")
-	errNotSupported = errors.New("has an unsupported type")
 )
 
 // MultiError is an error which also contains a map of additional (named) errors
@@ -89,12 +85,12 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 	for _, target := range targets {
 		targetVal := reflect.ValueOf(target)
 		if targetVal.Kind() != reflect.Ptr {
-			return errNoPtr
+			return errors.New("target must be a pointer")
 		}
 
 		targetVal = targetVal.Elem()
 		if targetVal.Kind() != reflect.Struct {
-			return errNoStruct
+			return errors.New("target must be a struct")
 		}
 
 		it := internal.NewIterator(targetVal, r.tag, r.mapper)
@@ -134,7 +130,7 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 
 	parser, ok := internal.SelectParser(field)
 	if !ok {
-		return errNotSupported
+		return errors.New("target field type is not supported")
 	}
 
 	parsed, err := parser.Parse(values[0])
@@ -171,7 +167,7 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 
 	parser, ok := internal.SelectParser(first)
 	if !ok {
-		return errNotSupported
+		return errors.New("target field type is not supported")
 	}
 
 	for i, value := range values {
