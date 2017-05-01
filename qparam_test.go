@@ -122,7 +122,7 @@ func TestReader_Read(t *testing.T) {
 		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
-		assert.EqualError(t, err, "6 errors occured while reading fields")
+		assert.EqualError(t, err, "6 errors occured while reading parameters")
 		multi, ok := err.(qparam.MultiError)
 		require.True(t, ok, "not a MultiError")
 		assert.Equal(t, 6, len(multi.ErrorMap()))
@@ -150,6 +150,24 @@ func TestReader_Read(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.EqualValues(t, slicesExpected, slicesTarget)
+	})
+
+	t.Run("strict mode", func(t *testing.T) {
+		values := url.Values{
+			"time":     []string{nowStr},
+			"time_ptr": []string{nowStr},
+			"foo":      []string{"not expected"},
+		}
+
+		timesTarget := times{}
+		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Strict(true))
+		err := reader.Read(values, &timesTarget)
+
+		assert.Error(t, err)
+		multi, ok := err.(qparam.MultiError)
+		require.True(t, ok, "not a MultiError")
+		_, ok = multi.ErrorMap()["foo"]
+		assert.True(t, ok, "field foo not in error")
 	})
 
 	t.Run("multiple structs", func(t *testing.T) {

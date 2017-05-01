@@ -33,7 +33,7 @@ type multiError map[string]error
 
 // Error returns a string summarizing all errors
 func (err multiError) Error() string {
-	return fmt.Sprintf("%d errors occured while reading fields", len(err))
+	return fmt.Sprintf("%d errors occured while reading parameters", len(err))
 }
 
 // ErrorMap returns all field names with their respective errors
@@ -60,10 +60,20 @@ func Tag(tag string) Option {
 	}
 }
 
+// Strict is a functional option used to define whether the reader runs in struct
+// mode or not. In strict mode all parsed values must have an equivalent target field.
+// If the strict rule is violated the Reader returns an error.
+func Strict(strict bool) Option {
+	return func(r *Reader) {
+		r.strict = strict
+	}
+}
+
 // Reader defines methods which can read query parameters and assign them to matching
 // fields of target structs.
 type Reader struct {
 	tag    string
+	strict bool
 	mapper func(string) string
 }
 
@@ -85,7 +95,12 @@ func New(options ...Option) *Reader {
 // implements the interface MultiError. In that case specific errors for each failed field
 // can be obtained from the error.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
-	errorMap := multiError{}
+	var processed map[string]struct{}
+	if r.strict {
+		processed = make(map[string]struct{})
+	}
+
+	fieldErrors := multiError{}
 	for _, target := range targets {
 		targetVal := reflect.ValueOf(target)
 		if targetVal.Kind() != reflect.Ptr {
@@ -110,14 +125,26 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 				}
 
 				if err != nil {
-					errorMap[name] = err
+					fieldErrors[name] = err
+				}
+
+				if r.strict {
+					processed[name] = struct{}{}
 				}
 			}
 		}
 	}
 
-	if len(errorMap) > 0 {
-		return errorMap
+	if r.strict {
+		for name := range params {
+			if _, ok := processed[name]; !ok {
+				fieldErrors[name] = errors.New("unknown parameter name")
+			}
+		}
+	}
+
+	if len(fieldErrors) > 0 {
+		return fieldErrors
 	}
 
 	return nil
@@ -125,7 +152,7 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 
 func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.Iterator) error {
 	if len(values) > 1 {
-		return errors.New("multiple values present for non slice target")
+		return errors.New("multiple values for single value parameter")
 	}
 
 	checked, ok := internal.SelectCheckedParser(field)
