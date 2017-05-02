@@ -35,11 +35,11 @@ func Example() {
 	reader := qparam.New()
 	reader.Read(values, &page, &filters)
 
-	fmt.Printf("limit: %d, offset: %d, name: %s, age: %d\n", page.Limit, page.Offset, filters.Name, filters.Age)
-	// Output: limit: 25, offset: 100, name: Doe, age: 31
+	fmt.Println(page.Limit, page.Offset, filters.Name, filters.Age)
+	// Output: 25 100 Doe 31
 }
 
-func Example_NestedStructs() {
+func Example_nested() {
 	type Phone struct {
 		Label  string
 		Number string
@@ -61,11 +61,11 @@ func Example_NestedStructs() {
 	reader := qparam.New()
 	reader.Read(values, &contact)
 
-	fmt.Printf("name: %s, label: %s, number: %s", contact.Name, contact.Phone.Label, contact.Phone.Number)
-	// Output: name: John, Doe, label: Mobile, number: +33 112 33445566
+	fmt.Println(contact.Name, contact.Phone.Label, contact.Phone.Number)
+	// Output: John, Doe Mobile +33 112 33445566
 }
 
-func Example_CustomTag() {
+func Example_tag() {
 	values := url.Values{"session_id": []string{"abcdefghijklmn"}}
 	info := struct {
 		Session string `mytag:"session_id"`
@@ -74,11 +74,11 @@ func Example_CustomTag() {
 	reader := qparam.New(qparam.Tag("mytag"))
 	reader.Read(values, &info)
 
-	fmt.Printf("session: %s\n", info.Session)
-	// Output: session: abcdefghijklmn
+	fmt.Println(info.Session)
+	// Output: abcdefghijklmn
 }
 
-func Example_CustomMapper() {
+func Example_mapper() {
 	values := url.Values{"session_id": []string{"abcdefghijklmn"}}
 	info := struct {
 		SessionID string
@@ -87,6 +87,6 @@ func Example_CustomMapper() {
 	reader := qparam.New(qparam.Mapper(strcase.SnakeCase))
 	reader.Read(values, &info)
 
-	fmt.Printf("session: %s\n", info.SessionID)
-	// Output: session: abcdefghijklmn
+	fmt.Println(info.SessionID)
+	// Output: abcdefghijklmn
 }
