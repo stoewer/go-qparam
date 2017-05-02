@@ -4,9 +4,9 @@
 package internal
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
+
+	"github.com/pkg/errors"
 )
 
 // CheckedParser is a parser that has a method (Check) which can be used to determine whether the
@@ -49,7 +49,7 @@ func (p textParser) Parse(value reflect.Value, s string) error {
 
 	returned := unmarshal.Call([]reflect.Value{reflect.ValueOf([]byte(s))})
 	if len(returned) > 0 && !returned[0].IsNil() {
-		return fmt.Errorf("%s", returned[0])
+		return errors.Errorf("%s", returned[0])
 	}
 
 	return nil

@@ -1,49 +1,22 @@
 // Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
 // All rights reserved.
 
-// Package qparam provides convenient functions to read query parameters from request
-// URLs. On errors the package functions create errors which provide detailed information about
-// missing parameters and other failure causes.
 package qparam
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/stoewer/go-qparam/internal"
 )
 
 var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
-
-	errNoPtr        = errors.New("target must be a pointer")
-	errNoStruct     = errors.New("target must be a struct")
-	errNotSupported = errors.New("has an unsupported type")
 )
-
-// MultiError is an error which also contains a map of additional (named) errors
-// which altogether caused the actual failure.
-type MultiError interface {
-	error
-	ErrorMap() map[string]error
-}
-
-// implementation of MultiError
-type multiError map[string]error
-
-// Error returns a string summarizing all errors
-func (err multiError) Error() string {
-	return fmt.Sprintf("%d errors occured while reading fields", len(err))
-}
-
-// ErrorMap returns all field names with their respective errors
-func (err multiError) ErrorMap() map[string]error {
-	return err
-}
 
 // Option is a functional option which can be applied to a reader.
 type Option func(*Reader)
@@ -64,14 +37,26 @@ func Tag(tag string) Option {
 	}
 }
 
+// Strict is a functional option used to define whether the reader runs in struct
+// mode or not. In strict mode all parsed values must have an equivalent target field.
+// If the strict rule is violated the Reader returns an error.
+func Strict(strict bool) Option {
+	return func(r *Reader) {
+		r.strict = strict
+	}
+}
+
 // Reader defines methods which can read query parameters and assign them to matching
 // fields of target structs.
 type Reader struct {
 	tag    string
+	strict bool
 	mapper func(string) string
 }
 
-// New creates a new reader which can be configured with predefined functional options.
+// New creates a new reader which can be configured with predefined functional options. The options
+// can be used to configure the following reader behaviour: custom field name mapping (default: lower
+// case), custom field tag (default: param) and strict mode (default: false)
 func New(options ...Option) *Reader {
 	r := &Reader{tag: defaultTag, mapper: defaultMapper}
 
@@ -84,17 +69,26 @@ func New(options ...Option) *Reader {
 
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
+//
+// If an error occurs while parsing the values for struct fields, the returned error probably
+// implements the interface MultiError. In that case specific errors for each failed field
+// can be obtained from the error.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
-	errorMap := multiError{}
+	var processed map[string]struct{}
+	if r.strict {
+		processed = make(map[string]struct{})
+	}
+
+	fieldErrors := multiError{}
 	for _, target := range targets {
 		targetVal := reflect.ValueOf(target)
 		if targetVal.Kind() != reflect.Ptr {
-			return errNoPtr
+			return errors.New("target must be a pointer")
 		}
 
 		targetVal = targetVal.Elem()
 		if targetVal.Kind() != reflect.Struct {
-			return errNoStruct
+			return errors.New("target must be a struct")
 		}
 
 		it := internal.NewIterator(targetVal, r.tag, r.mapper)
@@ -110,20 +104,36 @@ func (r *Reader) Read(params url.Values, targets ...interface{}) error {
 				}
 
 				if err != nil {
-					errorMap[name] = err
+					fieldErrors[name] = err
+				}
+
+				if r.strict {
+					processed[name] = struct{}{}
 				}
 			}
 		}
 	}
 
-	if len(errorMap) > 0 {
-		return errorMap
+	if r.strict {
+		for name := range params {
+			if _, ok := processed[name]; !ok {
+				fieldErrors[name] = errors.New("unknown parameter name")
+			}
+		}
+	}
+
+	if len(fieldErrors) > 0 {
+		return fieldErrors
 	}
 
 	return nil
 }
 
 func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.Iterator) error {
+	if len(values) > 1 {
+		return errors.New("multiple values for single value parameter")
+	}
+
 	checked, ok := internal.SelectCheckedParser(field)
 	if ok {
 		if field.Kind() == reflect.Struct {
@@ -134,7 +144,7 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 
 	parser, ok := internal.SelectParser(field)
 	if !ok {
-		return errNotSupported
+		return errors.New("target field type is not supported")
 	}
 
 	parsed, err := parser.Parse(values[0])
@@ -171,7 +181,7 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 
 	parser, ok := internal.SelectParser(first)
 	if !ok {
-		return errNotSupported
+		return errors.New("target field type is not supported")
 	}
 
 	for i, value := range values {
@@ -186,4 +196,24 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+// MultiError is an error which also contains a map of additional (named) errors
+// which altogether caused the actual failure.
+type MultiError interface {
+	error
+	ErrorMap() map[string]error
+}
+
+// implementation of MultiError
+type multiError map[string]error
+
+// Error returns a string summarizing all errors
+func (err multiError) Error() string {
+	return fmt.Sprintf("%d errors occured while reading parameters", len(err))
+}
+
+// ErrorMap returns all field names with their respective errors
+func (err multiError) ErrorMap() map[string]error {
+	return err
 }

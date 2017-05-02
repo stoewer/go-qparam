@@ -5,11 +5,13 @@ go:
  - 1.8
 
 install:
- - go get -v -u github.com/golang/lint/golint
- - go get -v -u github.com/mattn/goveralls
- - go get -v -u github.com/stretchr/testify/...
- - go get -v -u github.com/guregu/null
- - go get -v -u github.com/stoewer/go-strcase
+ - go get github.com/pkg/errors
+ - go get github.com/golang/lint/golint
+ - go get github.com/mattn/goveralls
+ - go get github.com/stretchr/testify/...
+ - go get github.com/guregu/null
+ - go get github.com/stoewer/go-strcase
+ - go get github.com/pkg/errors
 
 script:
  - golint -set_exit_status ./...
