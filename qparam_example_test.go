@@ -11,7 +11,7 @@ import (
 	"github.com/stoewer/go-strcase"
 )
 
-func ExampleSimple() {
+func Example() {
 	type Page struct {
 		Limit  int
 		Offset int
@@ -39,7 +39,7 @@ func ExampleSimple() {
 	// Output: limit: 25, offset: 100, name: Doe, age: 31
 }
 
-func ExampleNestedStructs() {
+func Example_NestedStructs() {
 	type Phone struct {
 		Label  string
 		Number string
@@ -65,7 +65,7 @@ func ExampleNestedStructs() {
 	// Output: name: John, Doe, label: Mobile, number: +33 112 33445566
 }
 
-func ExampleCustomTag() {
+func Example_CustomTag() {
 	values := url.Values{"session_id": []string{"abcdefghijklmn"}}
 	info := struct {
 		Session string `mytag:"session_id"`
@@ -78,7 +78,7 @@ func ExampleCustomTag() {
 	// Output: session: abcdefghijklmn
 }
 
-func ExampleCustomMapper() {
+func Example_CustomMapper() {
 	values := url.Values{"session_id": []string{"abcdefghijklmn"}}
 	info := struct {
 		SessionID string
