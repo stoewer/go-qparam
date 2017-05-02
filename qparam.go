@@ -1,9 +1,6 @@
 // Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
 // All rights reserved.
 
-// Package qparam provides convenient functions to read query parameters from request
-// URLs. On errors the package functions create errors which provide detailed information about
-// missing parameters and other failure causes.
 package qparam
 
 import (
@@ -20,26 +17,6 @@ var (
 	defaultTag    = "param"
 	defaultMapper = strings.ToLower
 )
-
-// MultiError is an error which also contains a map of additional (named) errors
-// which altogether caused the actual failure.
-type MultiError interface {
-	error
-	ErrorMap() map[string]error
-}
-
-// implementation of MultiError
-type multiError map[string]error
-
-// Error returns a string summarizing all errors
-func (err multiError) Error() string {
-	return fmt.Sprintf("%d errors occured while reading parameters", len(err))
-}
-
-// ErrorMap returns all field names with their respective errors
-func (err multiError) ErrorMap() map[string]error {
-	return err
-}
 
 // Option is a functional option which can be applied to a reader.
 type Option func(*Reader)
@@ -77,7 +54,9 @@ type Reader struct {
 	mapper func(string) string
 }
 
-// New creates a new reader which can be configured with predefined functional options.
+// New creates a new reader which can be configured with predefined functional options. The options
+// can be used to configure the following reader behaviour: custom field name mapping (default: lower
+// case), custom field tag (default: param) and strict mode (default: false)
 func New(options ...Option) *Reader {
 	r := &Reader{tag: defaultTag, mapper: defaultMapper}
 
@@ -91,7 +70,7 @@ func New(options ...Option) *Reader {
 // Read takes the provided query parameter and assigns them to the matching fields of the
 // target structs.
 //
-// If an error occurs while parsing values for struct fields, the returned error probably
+// If an error occurs while parsing the values for struct fields, the returned error probably
 // implements the interface MultiError. In that case specific errors for each failed field
 // can be obtained from the error.
 func (r *Reader) Read(params url.Values, targets ...interface{}) error {
@@ -217,4 +196,24 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+// MultiError is an error which also contains a map of additional (named) errors
+// which altogether caused the actual failure.
+type MultiError interface {
+	error
+	ErrorMap() map[string]error
+}
+
+// implementation of MultiError
+type multiError map[string]error
+
+// Error returns a string summarizing all errors
+func (err multiError) Error() string {
+	return fmt.Sprintf("%d errors occured while reading parameters", len(err))
+}
+
+// ErrorMap returns all field names with their respective errors
+func (err multiError) ErrorMap() map[string]error {
+	return err
 }
