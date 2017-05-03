@@ -54,10 +54,10 @@ type Reader struct {
 	mapper func(string) string
 }
 
-// New creates a new reader which can be configured with predefined functional options. The options
+// NewReader creates a new reader which can be configured with predefined functional options. The options
 // can be used to configure the following reader behaviour: custom field name mapping (default: lower
 // case), custom field tag (default: param) and strict mode (default: false)
-func New(options ...Option) *Reader {
+func NewReader(options ...Option) *Reader {
 	r := &Reader{tag: defaultTag, mapper: defaultMapper}
 
 	for _, opt := range options {

@@ -32,7 +32,7 @@ func Example() {
 	var page Page
 	var filters Filters
 
-	reader := qparam.New()
+	reader := qparam.NewReader()
 	reader.Read(values, &page, &filters)
 
 	fmt.Println(page.Limit, page.Offset, filters.Name, filters.Age)
@@ -58,7 +58,7 @@ func Example_nested() {
 
 	var contact Contact
 
-	reader := qparam.New()
+	reader := qparam.NewReader()
 	reader.Read(values, &contact)
 
 	fmt.Println(contact.Name, contact.Phone.Label, contact.Phone.Number)
@@ -71,7 +71,7 @@ func Example_tag() {
 		Session string `mytag:"session_id"`
 	}{}
 
-	reader := qparam.New(qparam.Tag("mytag"))
+	reader := qparam.NewReader(qparam.Tag("mytag"))
 	reader.Read(values, &info)
 
 	fmt.Println(info.Session)
@@ -84,7 +84,7 @@ func Example_mapper() {
 		SessionID string
 	}{}
 
-	reader := qparam.New(qparam.Mapper(strcase.SnakeCase))
+	reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase))
 	reader.Read(values, &info)
 
 	fmt.Println(info.SessionID)
