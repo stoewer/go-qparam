@@ -24,7 +24,7 @@ of one (or more) target struct:
 
 	var page Page
 	var filters Filters
-	reader := qparam.New()
+	reader := qparam.NewReader()
 	reader.Read(values, &page, &filters)
 
 
@@ -54,7 +54,7 @@ delimiter:
 	}
 
 	var contact Contact
-	reader := qparam.New()
+	reader := qparam.NewReader()
 	reader.Read(values, &contact)
 
 The reader can further be configured to use custom field tags and a custom name mapping, which keeps

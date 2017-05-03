@@ -110,14 +110,6 @@ func (it *Iterator) forward() state {
 			fieldName = it.mapper(field.Name)
 		}
 
-		// create empty field elements
-		if it.fieldValue.Kind() == reflect.Ptr {
-			if it.fieldValue.IsNil() {
-				it.fieldValue.Set(reflect.New(it.fieldValue.Type().Elem()))
-			}
-			it.fieldValue = it.fieldValue.Elem()
-		}
-
 		// determine field path
 		if len(it.parents) > 0 {
 			parentNames := make([]string, 0, len(it.parents)+1)
@@ -127,6 +119,10 @@ func (it *Iterator) forward() state {
 			it.fieldPath = strings.Join(append(parentNames, fieldName), ".")
 		} else {
 			it.fieldPath = fieldName
+		}
+		
+		if it.fieldValue.Kind() == reflect.Ptr && !it.fieldValue.IsNil() {
+			it.fieldValue = it.fieldValue.Elem()
 		}
 
 		// if the field is a struct: go to next level

@@ -54,10 +54,10 @@ type Reader struct {
 	mapper func(string) string
 }
 
-// New creates a new reader which can be configured with predefined functional options. The options
+// NewReader creates a new reader which can be configured with predefined functional options. The options
 // can be used to configure the following reader behaviour: custom field name mapping (default: lower
 // case), custom field tag (default: param) and strict mode (default: false)
-func New(options ...Option) *Reader {
+func NewReader(options ...Option) *Reader {
 	r := &Reader{tag: defaultTag, mapper: defaultMapper}
 
 	for _, opt := range options {
@@ -134,25 +134,27 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 		return errors.New("multiple values for single value parameter")
 	}
 
-	checked, ok := internal.SelectCheckedParser(field)
-	if ok {
-		if field.Kind() == reflect.Struct {
-			it.SkipStruct()
+	// create empty field elements
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
 		}
-		return checked.Parse(field, values[0])
+		field = field.Elem()
 	}
 
-	parser, ok := internal.SelectParser(field)
+	parser, ok := internal.FindParser(field)
 	if !ok {
 		return errors.New("target field type is not supported")
 	}
+	if field.Kind() == reflect.Struct {
+		it.SkipStruct()
+	}
 
-	parsed, err := parser.Parse(values[0])
+	err := parser.Parse(field, values[0])
 	if err != nil {
 		return err
 	}
 
-	field.Set(parsed)
 	return nil
 }
 
@@ -163,36 +165,27 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 	isPtr := first.Kind() == reflect.Ptr
 	if isPtr {
 		for i := 0; i < slice.Len(); i++ {
-			slice.Index(i).Set(reflect.New(slice.Index(i).Type().Elem()))
+			elem := slice.Index(i)
+			if elem.IsNil() {
+				slice.Index(i).Set(reflect.New(slice.Index(i).Type().Elem()))
+			}
 		}
 		first = first.Elem()
 	}
 
-	checked, ok := internal.SelectCheckedParser(first)
-	if ok {
-		for i, value := range values {
-			err := checked.Parse(slice.Index(i), value)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	parser, ok := internal.SelectParser(first)
+	parser, ok := internal.FindParser(first)
 	if !ok {
 		return errors.New("target field type is not supported")
 	}
 
 	for i, value := range values {
-		parsed, err := parser.Parse(value)
+		elem := slice.Index(i)
+		if isPtr {
+			elem = elem.Elem()
+		}
+		err := parser.Parse(elem, value)
 		if err != nil {
 			return err
-		}
-		if isPtr {
-			slice.Index(i).Elem().Set(parsed)
-		} else {
-			slice.Index(i).Set(parsed)
 		}
 	}
 	return nil

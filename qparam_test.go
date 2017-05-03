@@ -81,7 +81,7 @@ func TestReader_Read(t *testing.T) {
 	t.Run("no pointer error", func(t *testing.T) {
 		target := times{}
 
-		reader := qparam.New()
+		reader := qparam.NewReader()
 		err := reader.Read(url.Values{}, target)
 
 		assert.Error(t, err)
@@ -90,7 +90,7 @@ func TestReader_Read(t *testing.T) {
 	t.Run("no struct error", func(t *testing.T) {
 		target := "not a struct"
 
-		reader := qparam.New()
+		reader := qparam.NewReader()
 		err := reader.Read(url.Values{}, &target)
 
 		assert.Error(t, err)
@@ -103,7 +103,7 @@ func TestReader_Read(t *testing.T) {
 		}{Field: make(map[string]string), Slice: make([]map[string]string, 0)}
 		values := url.Values{"field": []string{"map"}, "slice": []string{"map"}}
 
-		reader := qparam.New()
+		reader := qparam.NewReader()
 		err := reader.Read(values, &target)
 
 		assert.Error(t, err)
@@ -119,7 +119,7 @@ func TestReader_Read(t *testing.T) {
 			"int32ptr": []string{"not and int"}, "uint32ptr": []string{"-399"},
 		}
 
-		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
+		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
 		assert.EqualError(t, err, "6 errors occured while reading parameters")
@@ -145,7 +145,7 @@ func TestReader_Read(t *testing.T) {
 		}
 
 		slicesTarget := slices{}
-		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
+		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &slicesTarget)
 
 		assert.NoError(t, err)
@@ -160,7 +160,7 @@ func TestReader_Read(t *testing.T) {
 		}
 
 		timesTarget := times{}
-		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Strict(true))
+		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Strict(true))
 		err := reader.Read(values, &timesTarget)
 
 		assert.Error(t, err)
@@ -183,7 +183,7 @@ func TestReader_Read(t *testing.T) {
 
 		timesTarget := times{}
 		stringsTarget := strings{}
-		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
+		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &stringsTarget)
 
 		assert.NoError(t, err)
@@ -220,7 +220,7 @@ func TestReader_Read(t *testing.T) {
 		*expected.Pointers.Int32Ptr = -253
 		*expected.Pointers.Uint32Ptr = 94883
 		*expected.Strings.StringPtr = "bar"
-		target := test{}
+		target := test{Pointers: &pointers{}, Strings: &strings{}}
 		values := url.Values{
 			"int":                []string{"-345"},
 			"int8":               []string{"33"},
@@ -241,7 +241,7 @@ func TestReader_Read(t *testing.T) {
 			"strings.string_ptr": []string{"bar"},
 		}
 
-		reader := qparam.New(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
+		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &target)
 
 		assert.NoError(t, err)
