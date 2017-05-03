@@ -50,6 +50,6 @@ values := map[string][]string{
 
 var page Page
 var filters Filters
-reader := qparam.New()
+reader := qparam.NewReader()
 reader.Read(values, &page, &filters)
 ```
