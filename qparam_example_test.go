@@ -11,7 +11,7 @@ import (
 	"github.com/stoewer/go-strcase"
 )
 
-func Example() {
+func ExampleDocSimple() {
 	type Page struct {
 		Limit  int
 		Offset int
@@ -39,7 +39,7 @@ func Example() {
 	// Output: 25 100 Doe 31
 }
 
-func Example_nested() {
+func ExampleDocNested() {
 	type Phone struct {
 		Label  string
 		Number string

@@ -10,9 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Parser is used to parse a string into its value representation. The type of the returned value
-// depends on the implementation of the parser. A bool parser will turn the string "1" into 'true' but
-// a int64 parser would turn the same string into 'int64(1)'.
+// Parser is used to parse a string and assign it to the provided value.
 type Parser interface {
 	Parse(reflect.Value, string) error
 }
@@ -45,7 +43,7 @@ var registeredCheckedParsers = []CheckedParser{
 	textParser{},
 }
 
-// FindParser finds a Parser that matches the kind of the provided value. If such a parser
+// FindParser finds a Parser that matches the provided value. If such a parser
 // was found the second returned value will be true, it is false otherwise.
 func FindParser(value reflect.Value) (Parser, bool) {
 	for _, parser := range registeredCheckedParsers {
