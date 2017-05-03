@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO test returned values
-
 type outer struct {
 	FieldA    string
 	FiledB    int
@@ -53,7 +51,7 @@ func TestIterator_Next(t *testing.T) {
 		"struct_two.field_h",
 	}
 
-	data := &outer{}
+	data := &outer{One: &innerA{}}
 	it := internal.NewIterator(reflect.ValueOf(data), "param", strcase.SnakeCase)
 
 	index := 0
@@ -79,7 +77,7 @@ func TestIterator_HasNext(t *testing.T) {
 		"struct_two.field_h",
 	}
 
-	data := &outer{}
+	data := &outer{One: &innerA{}}
 	it := internal.NewIterator(reflect.ValueOf(data), "param", strcase.SnakeCase)
 
 	i := 0
@@ -91,7 +89,7 @@ func TestIterator_HasNext(t *testing.T) {
 }
 
 func TestIterator_Skip(t *testing.T) {
-	data := &outer{}
+	data := &outer{One: &innerA{}}
 	it := internal.NewIterator(reflect.ValueOf(data), "param", strcase.SnakeCase)
 
 	var name string

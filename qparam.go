@@ -134,6 +134,14 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 		return errors.New("multiple values for single value parameter")
 	}
 
+	// create empty field elements
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		field = field.Elem()
+	}
+
 	parser, ok := internal.FindParser(field)
 	if !ok {
 		return errors.New("target field type is not supported")
@@ -157,7 +165,10 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 	isPtr := first.Kind() == reflect.Ptr
 	if isPtr {
 		for i := 0; i < slice.Len(); i++ {
-			slice.Index(i).Set(reflect.New(slice.Index(i).Type().Elem()))
+			elem := slice.Index(i)
+			if elem.IsNil() {
+				slice.Index(i).Set(reflect.New(slice.Index(i).Type().Elem()))
+			}
 		}
 		first = first.Elem()
 	}

@@ -220,7 +220,7 @@ func TestReader_Read(t *testing.T) {
 		*expected.Pointers.Int32Ptr = -253
 		*expected.Pointers.Uint32Ptr = 94883
 		*expected.Strings.StringPtr = "bar"
-		target := test{}
+		target := test{Pointers: &pointers{}, Strings: &strings{}}
 		values := url.Values{
 			"int":                []string{"-345"},
 			"int8":               []string{"33"},
