@@ -134,17 +134,12 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 		return errors.New("multiple values for single value parameter")
 	}
 
-	checked, ok := internal.SelectCheckedParser(field)
-	if ok {
-		if field.Kind() == reflect.Struct {
-			it.SkipStruct()
-		}
-		return checked.Parse(field, values[0])
-	}
-
-	parser, ok := internal.SelectParser(field)
+	parser, ok := internal.FindParser(field)
 	if !ok {
 		return errors.New("target field type is not supported")
+	}
+	if field.Kind() == reflect.Struct {
+		it.SkipStruct()
 	}
 
 	err := parser.Parse(field, values[0])
@@ -167,18 +162,7 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 		first = first.Elem()
 	}
 
-	checked, ok := internal.SelectCheckedParser(first)
-	if ok {
-		for i, value := range values {
-			err := checked.Parse(slice.Index(i), value)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	parser, ok := internal.SelectParser(first)
+	parser, ok := internal.FindParser(first)
 	if !ok {
 		return errors.New("target field type is not supported")
 	}

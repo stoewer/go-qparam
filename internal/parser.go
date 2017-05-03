@@ -6,6 +6,8 @@ package internal
 import (
 	"reflect"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // Parser is used to parse a string into its value representation. The type of the returned value
@@ -13,6 +15,13 @@ import (
 // a int64 parser would turn the same string into 'int64(1)'.
 type Parser interface {
 	Parse(reflect.Value, string) error
+}
+
+// CheckedParser is a parser that has a method (Check) which can be used to determine whether the
+// parser can be applied to a certain value. It is recommended to call Check prior to calling Parse.
+type CheckedParser interface {
+	Parser
+	Check(reflect.Value) bool
 }
 
 var registeredParsers = map[reflect.Kind]Parser{
@@ -32,9 +41,19 @@ var registeredParsers = map[reflect.Kind]Parser{
 	reflect.String:  stringParser,
 }
 
-// SelectParser finds a Parser that matches the kind of the provided value. If such a parser
+var registeredCheckedParsers = []CheckedParser{
+	textParser{},
+}
+
+// FindParser finds a Parser that matches the kind of the provided value. If such a parser
 // was found the second returned value will be true, it is false otherwise.
-func SelectParser(value reflect.Value) (Parser, bool) {
+func FindParser(value reflect.Value) (Parser, bool) {
+	for _, parser := range registeredCheckedParsers {
+		if parser.Check(value) {
+			return parser, true
+		}
+	}
+
 	parser, ok := registeredParsers[value.Kind()]
 	return parser, ok
 }
@@ -166,3 +185,41 @@ var stringParser = parserFunc(func(value reflect.Value, s string) error {
 	value.Set(reflect.ValueOf(s))
 	return nil
 })
+
+type textParser struct{}
+
+func (p textParser) Check(value reflect.Value) bool {
+	unmarshal := p.method(value)
+	if !unmarshal.IsValid() {
+		return false
+	}
+	return true
+}
+
+func (p textParser) Parse(value reflect.Value, s string) error {
+	unmarshal := p.method(value)
+	if !unmarshal.IsValid() {
+		return errors.New("method UnmarshalText not available")
+	}
+
+	returned := unmarshal.Call([]reflect.Value{reflect.ValueOf([]byte(s))})
+	if len(returned) > 0 && !returned[0].IsNil() {
+		return errors.Errorf("%s", returned[0])
+	}
+
+	return nil
+}
+
+func (p textParser) method(value reflect.Value) reflect.Value {
+	m := value.MethodByName("UnmarshalText")
+	if !m.IsValid() {
+		if value.Kind() == reflect.Ptr {
+			m = value.Elem().MethodByName("UnmarshalText")
+		} else {
+			if value.CanAddr() {
+				m = value.Addr().MethodByName("UnmarshalText")
+			}
+		}
+	}
+	return m
+}

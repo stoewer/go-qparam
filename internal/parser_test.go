@@ -6,11 +6,25 @@ package internal_test
 import (
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/guregu/null"
 	"github.com/stoewer/go-qparam/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var (
+	now      time.Time
+	nowStr   string
+	nullTrue = null.BoolFrom(true)
+)
+
+func init() {
+	b, _ := time.Now().MarshalText()
+	nowStr = string(b)
+	now.UnmarshalText(b)
+}
 
 func TestSelectParser_Int(t *testing.T) {
 	data := []struct {
@@ -48,7 +62,7 @@ func TestSelectParser_Int(t *testing.T) {
 
 	for _, tt := range data {
 		t.Run(tt.Name, func(t *testing.T) {
-			parser, ok := internal.SelectParser(tt.Expected)
+			parser, ok := internal.FindParser(tt.Expected)
 			require.True(t, ok)
 
 			err := parser.Parse(tt.Target.Elem(), tt.Value)
@@ -93,7 +107,7 @@ func TestSelectParser_Uint(t *testing.T) {
 
 	for _, tt := range data {
 		t.Run(tt.Name, func(t *testing.T) {
-			parser, ok := internal.SelectParser(tt.Expected)
+			parser, ok := internal.FindParser(tt.Expected)
 			require.True(t, ok)
 
 			err := parser.Parse(tt.Target.Elem(), tt.Value)
@@ -128,7 +142,7 @@ func TestSelectParser_Float(t *testing.T) {
 
 	for _, tt := range data {
 		t.Run(tt.Name, func(t *testing.T) {
-			parser, ok := internal.SelectParser(tt.Expected)
+			parser, ok := internal.FindParser(tt.Expected)
 			require.True(t, ok)
 
 			err := parser.Parse(tt.Target.Elem(), tt.Value)
@@ -157,7 +171,7 @@ func TestSelectParser_Bool(t *testing.T) {
 
 	for _, tt := range data {
 		t.Run(tt.Name, func(t *testing.T) {
-			parser, ok := internal.SelectParser(tt.Expected)
+			parser, ok := internal.FindParser(tt.Expected)
 			require.True(t, ok)
 
 			err := parser.Parse(tt.Target.Elem(), tt.Value)
@@ -185,7 +199,7 @@ func TestSelectParser_String(t *testing.T) {
 
 	for _, tt := range data {
 		t.Run(tt.Name, func(t *testing.T) {
-			parser, ok := internal.SelectParser(tt.Expected)
+			parser, ok := internal.FindParser(tt.Expected)
 			require.True(t, ok)
 
 			err := parser.Parse(tt.Target.Elem(), tt.Value)
@@ -196,5 +210,33 @@ func TestSelectParser_String(t *testing.T) {
 				assert.Equal(t, tt.Expected.String(), tt.Target.Elem().String())
 			}
 		})
+	}
+}
+
+func TestSelectParser_TextUnmarshaler(t *testing.T) {
+	data := []struct {
+		Value       string
+		Target      interface{}
+		Expected    interface{}
+		ExpectedErr bool
+	}{
+		{Value: nowStr, Target: &time.Time{}, Expected: &now},
+		{Value: "not a time", Target: &time.Time{}, ExpectedErr: true},
+
+		{Value: "true", Target: &null.Bool{}, Expected: &nullTrue},
+		{Value: "not a bool", Target: &null.Bool{}, ExpectedErr: true},
+	}
+
+	for _, tt := range data {
+		parser, ok := internal.FindParser(reflect.ValueOf(tt.Target))
+		require.True(t, ok, "no parser found")
+
+		err := parser.Parse(reflect.ValueOf(tt.Target), tt.Value)
+		if tt.ExpectedErr {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, tt.Expected, tt.Target)
+		}
 	}
 }
