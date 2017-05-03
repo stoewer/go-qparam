@@ -12,7 +12,7 @@ import (
 // depends on the implementation of the parser. A bool parser will turn the string "1" into 'true' but
 // a int64 parser would turn the same string into 'int64(1)'.
 type Parser interface {
-	Parse(string) (reflect.Value, error)
+	Parse(reflect.Value, string) error
 }
 
 var registeredParsers = map[reflect.Kind]Parser{
@@ -39,116 +39,130 @@ func SelectParser(value reflect.Value) (Parser, bool) {
 	return parser, ok
 }
 
-type parserFunc func(string) (reflect.Value, error)
+type parserFunc func(reflect.Value, string) error
 
-func (fn parserFunc) Parse(s string) (reflect.Value, error) {
-	return fn(s)
+func (fn parserFunc) Parse(value reflect.Value, s string) error {
+	return fn(value, s)
 }
 
-var intParser = parserFunc(func(s string) (reflect.Value, error) {
+var intParser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseInt(s, 10, 0)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(int(i)), nil
+	value.Set(reflect.ValueOf(int(i)))
+	return nil
 })
 
-var int8Parser = parserFunc(func(s string) (reflect.Value, error) {
+var int8Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseInt(s, 10, 8)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(int8(i)), nil
+	value.Set(reflect.ValueOf(int8(i)))
+	return nil
 })
 
-var int16Parser = parserFunc(func(s string) (reflect.Value, error) {
+var int16Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseInt(s, 10, 16)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(int16(i)), nil
+	value.Set(reflect.ValueOf(int16(i)))
+	return nil
 })
 
-var int32Parser = parserFunc(func(s string) (reflect.Value, error) {
+var int32Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(int32(i)), nil
+	value.Set(reflect.ValueOf(int32(i)))
+	return nil
 })
 
-var int64Parser = parserFunc(func(s string) (reflect.Value, error) {
+var int64Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(i), nil
+	value.Set(reflect.ValueOf(i))
+	return nil
 })
 
-var uintParser = parserFunc(func(s string) (reflect.Value, error) {
+var uintParser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseUint(s, 10, 0)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(uint(i)), nil
+	value.Set(reflect.ValueOf(uint(i)))
+	return nil
 })
 
-var uint8Parser = parserFunc(func(s string) (reflect.Value, error) {
+var uint8Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseUint(s, 10, 8)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(uint8(i)), nil
+	value.Set(reflect.ValueOf(uint8(i)))
+	return nil
 })
 
-var uint16Parser = parserFunc(func(s string) (reflect.Value, error) {
+var uint16Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseUint(s, 10, 16)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(uint16(i)), nil
+	value.Set(reflect.ValueOf(uint16(i)))
+	return nil
 })
 
-var uint32Parser = parserFunc(func(s string) (reflect.Value, error) {
+var uint32Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseUint(s, 10, 32)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(uint32(i)), nil
+	value.Set(reflect.ValueOf(uint32(i)))
+	return nil
 })
 
-var uint64Parser = parserFunc(func(s string) (reflect.Value, error) {
+var uint64Parser = parserFunc(func(value reflect.Value, s string) error {
 	i, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(i), nil
+	value.Set(reflect.ValueOf(i))
+	return nil
 })
 
-var float32Parser = parserFunc(func(s string) (reflect.Value, error) {
+var float32Parser = parserFunc(func(value reflect.Value, s string) error {
 	f, err := strconv.ParseFloat(s, 32)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(float32(f)), nil
+	value.Set(reflect.ValueOf(float32(f)))
+	return nil
 })
 
-var float64Parser = parserFunc(func(s string) (reflect.Value, error) {
+var float64Parser = parserFunc(func(value reflect.Value, s string) error {
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(f), nil
+	value.Set(reflect.ValueOf(f))
+	return nil
 })
 
-var boolParser = parserFunc(func(s string) (reflect.Value, error) {
+var boolParser = parserFunc(func(value reflect.Value, s string) error {
 	b, err := strconv.ParseBool(s)
 	if err != nil {
-		return reflect.Value{}, err
+		return err
 	}
-	return reflect.ValueOf(b), nil
+	value.Set(reflect.ValueOf(b))
+	return nil
 })
 
-var stringParser = parserFunc(func(s string) (reflect.Value, error) {
-	return reflect.ValueOf(s), nil
+var stringParser = parserFunc(func(value reflect.Value, s string) error {
+	value.Set(reflect.ValueOf(s))
+	return nil
 })

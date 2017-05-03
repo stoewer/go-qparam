@@ -12,8 +12,8 @@ import (
 // CheckedParser is a parser that has a method (Check) which can be used to determine whether the
 // parser can be applied to a certain value. It is recommended to call Check prior to calling Parse.
 type CheckedParser interface {
+	Parser
 	Check(reflect.Value) bool
-	Parse(reflect.Value, string) error
 }
 
 var registeredCheckedParsers = []CheckedParser{

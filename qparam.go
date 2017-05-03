@@ -147,12 +147,11 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 		return errors.New("target field type is not supported")
 	}
 
-	parsed, err := parser.Parse(values[0])
+	err := parser.Parse(field, values[0])
 	if err != nil {
 		return err
 	}
 
-	field.Set(parsed)
 	return nil
 }
 
@@ -185,14 +184,13 @@ func (r *Reader) readSlice(values []string, slice reflect.Value) error {
 	}
 
 	for i, value := range values {
-		parsed, err := parser.Parse(value)
+		elem := slice.Index(i)
+		if isPtr {
+			elem = elem.Elem()
+		}
+		err := parser.Parse(elem, value)
 		if err != nil {
 			return err
-		}
-		if isPtr {
-			slice.Index(i).Elem().Set(parsed)
-		} else {
-			slice.Index(i).Set(parsed)
 		}
 	}
 	return nil
