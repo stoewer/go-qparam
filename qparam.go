@@ -203,7 +203,7 @@ type multiError map[string]error
 
 // Error returns a string summarizing all errors
 func (err multiError) Error() string {
-	return fmt.Sprintf("%d errors occured while reading parameters", len(err))
+	return fmt.Sprintf("%d errors occurred while reading parameters", len(err))
 }
 
 // ErrorMap returns all field names with their respective errors

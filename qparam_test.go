@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stoewer/go-qparam"
-	"github.com/stoewer/go-strcase"
+	qparam "github.com/stoewer/go-qparam"
+	strcase "github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +122,7 @@ func TestReader_Read(t *testing.T) {
 		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
-		assert.EqualError(t, err, "6 errors occured while reading parameters")
+		assert.EqualError(t, err, "6 errors occurred while reading parameters")
 		multi, ok := err.(qparam.MultiError)
 		require.True(t, ok, "not a MultiError")
 		assert.Equal(t, 6, len(multi.ErrorMap()))

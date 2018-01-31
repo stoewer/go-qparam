@@ -25,6 +25,7 @@ The package is not stable yet.
 ## Install and use
 
 ```sh
+go get -u github.com/stoewer/go-strcase
 go get -u github.com/stoewer/go-qparam
 ```
 
