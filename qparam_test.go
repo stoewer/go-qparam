@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	qparam "github.com/stoewer/go-qparam"
-	strcase "github.com/stoewer/go-strcase"
+	"github.com/stoewer/go-qparam"
+	"github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
