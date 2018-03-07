@@ -6,7 +6,7 @@ There are many ways to contribute to this little project and all those ways are 
 Report a bug
 ------------ 
 
-If you encounter a bug in `go-qparam` please file a short but report with a description of the bug in 
+If you encounter a bug in `go-qparam` please file a short bug report with a description of the bug in 
 the [issue tracker](https://github.com/stoewer/go-qparam/issues) and label it as `bug`. Before doing so, 
 please check if the same bug was already reported. In that case just add your information to the 
 existing issue.
