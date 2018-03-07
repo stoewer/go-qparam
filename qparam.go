@@ -4,9 +4,12 @@
 package qparam
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/url"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -151,11 +154,7 @@ func (r *Reader) readSingle(values []string, field reflect.Value, it *internal.I
 	}
 
 	err := parser.Parse(field, values[0])
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (r *Reader) readSlice(values []string, slice reflect.Value) error {
@@ -203,7 +202,57 @@ type multiError map[string]error
 
 // Error returns a string summarizing all errors
 func (err multiError) Error() string {
-	return fmt.Sprintf("%d errors occurred while reading parameters", len(err))
+	var keys []string
+	for k := range err {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	builder := bytes.NewBuffer(make([]byte, 0))
+	switch len(keys) {
+	case 0:
+		builder.WriteString("an error occurred while reading parameters")
+	case 1:
+		builder.WriteString("an error occurred while reading the parameter ")
+	default:
+		builder.WriteString("errors occurred while reading the parameters ")
+	}
+	builder.WriteString(strings.Join(keys, ", "))
+
+	return builder.String()
+}
+
+// Format implements fmt.Formatter for multiError
+func (err multiError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			var messages []string
+			for k, v := range err {
+				messages = append(messages, fmt.Sprintf("[%s] %s", k, v))
+			}
+			sort.Strings(messages)
+
+			builder := bytes.NewBuffer(make([]byte, 0))
+			switch len(err) {
+			case 0:
+				builder.WriteString("an error occurred while reading parameters")
+				return
+			case 1:
+				builder.WriteString("an error occurred while reading parameters: ")
+			default:
+				builder.WriteString("errors occurred while reading the parameters: ")
+			}
+
+			builder.WriteString(strings.Join(messages, ", "))
+			io.WriteString(s, builder.String())
+
+			return
+		}
+		fallthrough
+	case 's', 'q':
+		io.WriteString(s, err.Error())
+	}
 }
 
 // ErrorMap returns all field names with their respective errors

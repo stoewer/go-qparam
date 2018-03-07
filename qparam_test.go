@@ -122,7 +122,7 @@ func TestReader_Read(t *testing.T) {
 		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
-		assert.EqualError(t, err, "6 errors occurred while reading parameters")
+		assert.EqualError(t, err, "errors occurred while reading the parameters int32ptr, int_slice, time, time_ptr, time_slice, uint32ptr")
 		multi, ok := err.(qparam.MultiError)
 		require.True(t, ok, "not a MultiError")
 		assert.Equal(t, 6, len(multi.ErrorMap()))
