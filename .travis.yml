@@ -1,23 +1,18 @@
 language: go
 
 go:
-- '1.9'
-- '1.10'
+- '1.11'
+
+env:
+- GO111MODULE=on
 
 install:
-- go get github.com/pkg/errors
 - go get github.com/golang/lint/golint
 - go get github.com/mattn/goveralls
-- go get github.com/stretchr/testify/...
-- go get github.com/guregu/null
-- go get github.com/stoewer/go-strcase
-- go get github.com/pkg/errors
 
 script:
 - golint -set_exit_status ./...
-- go test -v -covermode=count -coverprofile=profile.cov ./
-- go test -v -covermode=count -coverprofile=profile-internal.cov.part ./internal
+- go test -mod=readonly -coverprofile=profile.cov ./...
 
 after_success:
-- "grep -h -v \"mode: count\" *.cov.part >> profile.cov"
 - goveralls -coverprofile=profile.cov -service=travis-ci

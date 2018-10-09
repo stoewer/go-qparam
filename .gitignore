@@ -3,6 +3,9 @@
 *.a
 *.so
 
+# Coverage profiles
+*.cov
+
 # Folders
 vendor
 doc
