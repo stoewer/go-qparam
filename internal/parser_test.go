@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/guregu/null"
+	"gopkg.in/guregu/null.v3"
 	"github.com/stoewer/go-qparam/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
