@@ -8,6 +8,7 @@ env:
 
 install:
 - go get github.com/golang/lint/golint
+- go get github.com/mattn/goveralls
 
 script:
 - golint -set_exit_status ./...
