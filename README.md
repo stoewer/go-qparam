@@ -26,12 +26,11 @@ This package can be considered stable and ready to use. All releases follow the 
 Although the master branch is supposed to remain stable, there is not guarantee that braking changes will not
 be merged into master when major versions are released. Therefore the repository contains version tags in 
 order to support vendoring tools such as [glide](https://glide.sh). The tag names follow common conventions 
-and have the following format `v1.0.0`.
+and have the following format `v1.0.0`. This package also supports Go modules introduced with version 1.11.
 
 ## Install and use
 
 ```sh
-go get -u github.com/stoewer/go-strcase
 go get -u github.com/stoewer/go-qparam
 ```
 
