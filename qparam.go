@@ -202,7 +202,7 @@ type multiError map[string]error
 
 // Error returns a string summarizing all errors
 func (err multiError) Error() string {
-	var keys []string
+	keys := make([]string, 0, len(err))
 	for k := range err {
 		keys = append(keys, k)
 	}
@@ -211,13 +211,13 @@ func (err multiError) Error() string {
 	builder := bytes.NewBuffer(make([]byte, 0))
 	switch len(keys) {
 	case 0:
-		builder.WriteString("an error occurred while reading parameters")
+		_, _ = builder.WriteString("an error occurred while reading parameters")
 	case 1:
-		builder.WriteString("an error occurred while reading the parameter ")
+		_, _ = builder.WriteString("an error occurred while reading the parameter ")
 	default:
-		builder.WriteString("errors occurred while reading the parameters ")
+		_, _ = builder.WriteString("errors occurred while reading the parameters ")
 	}
-	builder.WriteString(strings.Join(keys, ", "))
+	_, _ = builder.WriteString(strings.Join(keys, ", "))
 
 	return builder.String()
 }
@@ -236,22 +236,22 @@ func (err multiError) Format(s fmt.State, verb rune) {
 			builder := bytes.NewBuffer(make([]byte, 0))
 			switch len(err) {
 			case 0:
-				builder.WriteString("an error occurred while reading parameters")
+				_, _ = builder.WriteString("an error occurred while reading parameters")
 				return
 			case 1:
-				builder.WriteString("an error occurred while reading parameters: ")
+				_, _ = builder.WriteString("an error occurred while reading parameters: ")
 			default:
-				builder.WriteString("errors occurred while reading the parameters: ")
+				_, _ = builder.WriteString("errors occurred while reading the parameters: ")
 			}
 
-			builder.WriteString(strings.Join(messages, ", "))
-			io.WriteString(s, builder.String())
+			_, _ = builder.WriteString(strings.Join(messages, ", "))
+			_, _ = io.WriteString(s, builder.String())
 
 			return
 		}
 		fallthrough
 	case 's', 'q':
-		io.WriteString(s, err.Error())
+		_, _ = io.WriteString(s, err.Error())
 	}
 }
 

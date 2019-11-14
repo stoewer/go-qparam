@@ -1,6 +1,7 @@
 // Copyright (c) 2017, A. Stoewer <adrian@stoewer.me>
 // All rights reserved.
 
+// Package internal provides interfaces that are meant only for internal use.
 package internal
 
 import (
