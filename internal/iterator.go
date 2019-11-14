@@ -1,4 +1,4 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// Copyright (c) 2017, A. Stoewer <adrian@stoewer.me>
 // All rights reserved.
 
 package internal
@@ -120,7 +120,7 @@ func (it *Iterator) forward() state {
 		} else {
 			it.fieldPath = fieldName
 		}
-		
+
 		if it.fieldValue.Kind() == reflect.Ptr && !it.fieldValue.IsNil() {
 			it.fieldValue = it.fieldValue.Elem()
 		}
