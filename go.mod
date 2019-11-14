@@ -1,10 +1,10 @@
 module github.com/stoewer/go-qparam
 
+go 1.11
+
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pkg/errors v0.8.0
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stoewer/go-strcase v1.0.1
-	github.com/stretchr/testify v1.2.2
+	github.com/pkg/errors v0.8.1
+	github.com/stoewer/go-strcase v1.1.0
+	github.com/stretchr/testify v1.4.0
 	gopkg.in/guregu/null.v3 v3.4.0
 )

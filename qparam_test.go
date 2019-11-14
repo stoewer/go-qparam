@@ -1,4 +1,4 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// Copyright (c) 2017, A. Stoewer <adrian@stoewer.me>
 // All rights reserved.
 
 package qparam_test
@@ -26,15 +26,15 @@ var (
 func init() {
 	b, _ := time.Now().MarshalText()
 	nowStr = string(b)
-	now.UnmarshalText(b)
+	_ = now.UnmarshalText(b)
 
 	b, _ = time.Now().Add(-24 * time.Hour).MarshalText()
 	yesterdayStr = string(b)
-	yesterday.UnmarshalText(b)
+	_ = yesterday.UnmarshalText(b)
 
 	b, _ = time.Now().Add(24 * time.Hour).MarshalText()
 	tomorrowStr = string(b)
-	tomorrow.UnmarshalText(b)
+	_ = tomorrow.UnmarshalText(b)
 }
 
 func TestReader_Read(t *testing.T) {
@@ -63,6 +63,7 @@ func TestReader_Read(t *testing.T) {
 
 	type test struct {
 		Int      int
+		Bool     bool
 		Int8     int8
 		Int16    int16
 		Int32    int32
@@ -73,7 +74,6 @@ func TestReader_Read(t *testing.T) {
 		Uint32   uint32
 		Uint64   uint64
 		Pointers *pointers
-		Bool     bool
 		Times    times
 		Strings  *strings
 	}
@@ -113,6 +113,7 @@ func TestReader_Read(t *testing.T) {
 		timesTarget := times{}
 		slicesTarget := slices{}
 		pointersTarget := pointers{}
+		expected := "errors occurred while reading the parameters int32ptr, int_slice, time, time_ptr, time_slice, uint32ptr"
 		values := url.Values{
 			"time": []string{"not a time"}, "time_ptr": []string{nowStr, tomorrowStr},
 			"int_slice": []string{"not an int", "2", "3"}, "time_slice": []string{"not a time"},
@@ -122,7 +123,7 @@ func TestReader_Read(t *testing.T) {
 		reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase), qparam.Tag("param"))
 		err := reader.Read(values, &timesTarget, &slicesTarget, &pointersTarget)
 
-		assert.EqualError(t, err, "errors occurred while reading the parameters int32ptr, int_slice, time, time_ptr, time_slice, uint32ptr")
+		assert.EqualError(t, err, expected)
 		multi, ok := err.(qparam.MultiError)
 		require.True(t, ok, "not a MultiError")
 		assert.Equal(t, 6, len(multi.ErrorMap()))

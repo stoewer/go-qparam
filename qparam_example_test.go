@@ -1,4 +1,4 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// Copyright (c) 2017, A. Stoewer <adrian@stoewer.me>
 // All rights reserved.
 
 package qparam_test
@@ -11,7 +11,7 @@ import (
 	"github.com/stoewer/go-strcase"
 )
 
-func ExampleDocSimple() {
+func Example_simple() {
 	type Page struct {
 		Limit  int
 		Offset int
@@ -33,13 +33,13 @@ func ExampleDocSimple() {
 	var filters Filters
 
 	reader := qparam.NewReader()
-	reader.Read(values, &page, &filters)
+	_ = reader.Read(values, &page, &filters)
 
 	fmt.Println(page.Limit, page.Offset, filters.Name, filters.Age)
 	// Output: 25 100 Doe 31
 }
 
-func ExampleDocNested() {
+func Example_nested() {
 	type Phone struct {
 		Label  string
 		Number string
@@ -59,7 +59,7 @@ func ExampleDocNested() {
 	var contact Contact
 
 	reader := qparam.NewReader()
-	reader.Read(values, &contact)
+	_ = reader.Read(values, &contact)
 
 	fmt.Println(contact.Name, contact.Phone.Label, contact.Phone.Number)
 	// Output: John, Doe Mobile +33 112 33445566
@@ -72,7 +72,7 @@ func Example_tag() {
 	}{}
 
 	reader := qparam.NewReader(qparam.Tag("mytag"))
-	reader.Read(values, &info)
+	_ = reader.Read(values, &info)
 
 	fmt.Println(info.Session)
 	// Output: abcdefghijklmn
@@ -85,7 +85,7 @@ func Example_mapper() {
 	}{}
 
 	reader := qparam.NewReader(qparam.Mapper(strcase.SnakeCase))
-	reader.Read(values, &info)
+	_ = reader.Read(values, &info)
 
 	fmt.Println(info.SessionID)
 	// Output: abcdefghijklmn

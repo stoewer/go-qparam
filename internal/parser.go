@@ -1,4 +1,4 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// Copyright (c) 2017, A. Stoewer <adrian@stoewer.me>
 // All rights reserved.
 
 package internal
@@ -187,11 +187,7 @@ var stringParser = parserFunc(func(value reflect.Value, s string) error {
 type textParser struct{}
 
 func (p textParser) Check(value reflect.Value) bool {
-	unmarshal := p.method(value)
-	if !unmarshal.IsValid() {
-		return false
-	}
-	return true
+	return p.method(value).IsValid()
 }
 
 func (p textParser) Parse(value reflect.Value, s string) error {
